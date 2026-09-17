@@ -109,14 +109,20 @@ export function MusicPlayer() {
     return () => window.removeEventListener("birthday:start-music", handler);
   }, [play]);
 
-  /* Start the music as soon as the site opens. Browsers may block autoplay
-     until the visitor interacts, so retry on the very first interaction. */
+  /* Start the music as soon as the site opens. Browsers require a gesture if autoplay is blocked,
+     so we attempt autoplay immediately, and retry on any pointer/touch/click event. */
   useEffect(() => {
     play();
-    const onInteract = () => { if (!playingRef.current) play(); };
-    const events = ["pointerdown", "keydown", "touchstart", "scroll"] as const;
-    events.forEach((e) => window.addEventListener(e, onInteract, { passive: true }));
-    return () => events.forEach((e) => window.removeEventListener(e, onInteract));
+
+    const unlockAndPlay = () => {
+      play();
+    };
+
+    const events = ["pointerdown", "touchstart", "mousedown", "click", "keydown", "scroll"] as const;
+    events.forEach((e) => window.addEventListener(e, unlockAndPlay, { once: true, passive: true }));
+    return () => {
+      events.forEach((e) => window.removeEventListener(e, unlockAndPlay));
+    };
   }, [play]);
 
   const toggle = useCallback(() => {
